@@ -4,7 +4,7 @@
       <span class="circle" ref="circleRef"></span>
       <div class="text">
         <div v-if="loading" class="text-center flex items-center" ref="loadingIconRef" v-html="loadingIcon"></div>
-        <span class="ml-1">
+        <span ref="slotRef" class="flex" :class="{'ml-1':loading}">
           <slot/>
         </span>
       </div>
@@ -17,11 +17,25 @@
 import {onMounted, ref, watch} from "vue"
 import {gsap} from "gsap"
 import {getContrastColor} from "@/utils/color";
-const emits = defineEmits(['click'])
-const handleClick = ()=>{
-  if(props.disabled){
 
-  }else{
+const emits = defineEmits(['click'])
+const handleClick = () => {
+  console.log(`<GsapButton  border-color="${borderColor.value}" :color="${props.color}" colorFul link :loading="isLoading" @click="isLoading=!isLoading">`)
+
+  if (props.slotClickAnimation === 'upDown') {
+    gsap.fromTo(slotRef.value, {translateY: '0%'}, {translateY: '5px', duration: 0.1, yoyo: true, repeat: 1})
+  } else if (props.slotClickAnimation === 'shake') {
+    let tl = gsap.timeline({repeat: 1, yoyo: true});
+    tl.to(slotRef.value, {x: -1, duration: 0.1})
+        .to(slotRef.value, {x: 2, duration: 0.1})
+        .to(slotRef.value, {x: -4, duration: 0.1})
+  } else if (props.slotClickAnimation === 'route') {
+    let tl = gsap.timeline({repeat: 0, yoyo: false});
+    tl.to(slotRef.value, {rotate: 180, duration: 0.25, repeat: 0})
+    tl.set(slotRef.value, {rotate: 0, duration: 0.5, repeat: 0})
+  } else if (props.disabled) {
+
+  } else {
     emits('click')
   }
 
@@ -36,6 +50,14 @@ const props = defineProps({
     }
   },
   round: {
+    type: Boolean,
+    default: false,
+  },
+  hoverText: {
+    type: String,
+    default: '',
+  },
+  circle: {
     type: Boolean,
     default: false,
   },
@@ -63,21 +85,32 @@ const props = defineProps({
     default: 'white'
   },
   borderColor: {
-    required:false,
-    type:String
+    required: false,
+    type: String
   },
   bgColor: {
-    required:false,
-    type:String
+    required: false,
+    type: String
+  },
+  borderWidth: {
+    required: false,
+    type: Number,
+    default: 2
+  },
+  slotClickAnimation: {
+    required: false,
+    type: String,
+    default: ''
   }
 })
 const borderColor = ref<string>('')
 const gsapButtonRefTween = ref(null)
 const circleRefTween = ref(null)
+const slotRef = ref(null)
 const animationStart = (e) => {
-  if(props.colorFul){
+  if (props.colorFul) {
 
-  }else{
+  } else {
     gsapButtonRefTween.value = gsap.to(gsapButtonRef.value, {color: 'var(--contrast-color)'})
 
   }
@@ -91,21 +124,25 @@ const animationEnd = () => {
 const gsapButtonRef = ref(null)
 const circleRef = ref(null)
 const loadingIconRef = ref(null)
-
-onMounted(() => {
+const setProperty = () => {
   gsapButtonRef.value.style.setProperty('--main-color', props.color)
-  gsapButtonRef.value.style.setProperty('--round', props.round===true?'9999px':'0')
-
-  gsap.set(gsapButtonRef.value, {color: props.color})
-
+  gsapButtonRef.value.style.setProperty('--border-thin', props.borderWidth + 'px')
+  gsapButtonRef.value.style.setProperty('--round', props.round === true ? '9999px' : '0')
   if (props.borderColor) {
     gsapButtonRef.value.style.setProperty('--border-color', props.borderColor)
-  }else{
+  } else {
     gsapButtonRef.value.style.setProperty('--border-color', props.color)
+  }
+  if (props.circle) {
+    gsapButtonRef.value.style.setProperty('--padding-y', '0.5rem')
+    gsapButtonRef.value.style.setProperty('--padding-x', '0.5rem')
+  } else {
+    gsapButtonRef.value.style.setProperty('--padding-y', '0.5rem')
+    gsapButtonRef.value.style.setProperty('--padding-x', '1.5rem')
   }
   if (props.bgColor) {
     gsapButtonRef.value.style.setProperty('--bg-color', props.bgColor)
-  }else{
+  } else {
     gsapButtonRef.value.style.setProperty('--bg-color', props.color)
   }
   if (props.colorFul) {
@@ -113,6 +150,12 @@ onMounted(() => {
   } else {
     gsapButtonRef.value.style.setProperty('--contrast-color', getContrastColor(props.color))
   }
+}
+
+onMounted(() => {
+  gsap.set(gsapButtonRef.value, {color: props.color})
+
+  setProperty()
   gsapButtonRef.value.addEventListener("mousemove", (e) => {
     animationStart(e)
   })
@@ -142,18 +185,21 @@ onMounted(() => {
     gsap.set(gsapButtonRef.value, {})
   }
 })
-watch(()=>props.loading,(newValue)=>{
-  if(newValue){
-    gsap.to(loadingIconRef.value,{rotate:90,repeat:-1})
+watch(() => props.loading, (newValue) => {
+  if (newValue) {
+    gsap.to(loadingIconRef.value, {rotate: 90, repeat: -1})
 
   }
+})
+defineExpose({
+  ref: gsapButtonRef
 })
 </script>
 <style scoped>
 
 
 .gsap-button {
-  @apply relative inline-block py-2 px-6  rounded-[var(--round)] outline-0  box-border overflow-hidden m-0.5;
+  @apply relative inline-block py-[var(--padding-y)] px-[var(--padding-x)]  rounded-[var(--round)] outline-0  box-border overflow-hidden m-0.5;
 //text-transform: uppercase;
 }
 .gsap-button.loading {
@@ -162,14 +208,15 @@ watch(()=>props.loading,(newValue)=>{
 
 
 .gsap-button div.text {
-  @apply z-40 relative flex justify-center align-middle uppercase
+  @apply z-40 relative flex justify-center align-middle uppercase font-bold
 }
 .gsap-button.loading span.text {
   @apply  text-[var(--contrast-color)]
 }
 
 .gsap-button::after {
-  @apply absolute border-[var(--border-color)] border-2 rounded-[var(--round)] left-0 top-0 w-full h-full content-[''];
+  @apply absolute border-[var(--border-color)] rounded-[var(--round)] left-0 top-0 w-full h-full content-[''];
+  border-width: var(--border-thin);
 }
 
 .circle {
