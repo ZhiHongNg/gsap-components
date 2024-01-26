@@ -1,9 +1,9 @@
 <template>
   <div>
-    <button ref="gsapButtonRef" class="gsap-button" :class="{'loading':loading}">
+    <button @click="handleClick" ref="gsapButtonRef" class="gsap-button cursor-pointer" :class="{'loading':loading,'cursor-not-allowed':disabled}">
       <span class="circle" ref="circleRef"></span>
-      <div class="text" >
-          <div v-if="loading" class="text-center flex items-center" ref="loadingIconRef"  v-html="loadingIcon"></div>
+      <div class="text">
+        <div v-if="loading" class="text-center flex items-center" ref="loadingIconRef" v-html="loadingIcon"></div>
         <span class="ml-1">
           <slot/>
         </span>
@@ -12,14 +12,20 @@
   </div>
 </template>
 <script setup lang="ts">
-//todo:多个组件时候circle位置异常
-//todo:圆角处理
 //todo:链接按钮（link）
 
-import {onMounted, PropType, ref, watch} from "vue"
+import {onMounted, ref, watch} from "vue"
 import {gsap} from "gsap"
 import {getContrastColor} from "@/utils/color";
+const emits = defineEmits(['click'])
+const handleClick = ()=>{
+  if(props.disabled){
 
+  }else{
+    emits('click')
+  }
+
+}
 const props = defineProps({
   size: {
     type: String,
@@ -31,7 +37,11 @@ const props = defineProps({
   },
   round: {
     type: Boolean,
-    default: true,
+    default: false,
+  },
+  colorFul: {
+    type: Boolean,
+    default: false,
   },
   loadingIcon: {
     type: String,
@@ -41,23 +51,40 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
+  disabled: {
+    type: Boolean,
+    default: false,
+  },
   link: {
     type: Boolean,
     default: false,
   },
   color: {
-    default: 'rgb(254, 252, 232)'
+    default: 'white'
   },
   borderColor: {
-    default: 'rgb(254, 252, 232)'
+    required:false,
+    type:String
+  },
+  bgColor: {
+    required:false,
+    type:String
   }
 })
+const borderColor = ref<string>('')
+const gsapButtonRefTween = ref(null)
+const circleRefTween = ref(null)
 const animationStart = (e) => {
-  gsap.to(gsapButtonRef.value, {color: 'var(--contrast-color)'})
-  gsap.to(circleRef.value, {left: e.clientX - e.target.offsetLeft, top: e.clientY - e.target.offsetTop, width: '100%'})
+  if(props.colorFul){
+
+  }else{
+    gsapButtonRefTween.value = gsap.to(gsapButtonRef.value, {color: 'var(--contrast-color)'})
+
+  }
+  circleRefTween.value = gsap.to(circleRef.value, {left: e.layerX, top: e.layerY, width: '100%'})
 }
 const animationEnd = () => {
-  gsap.to(gsapButtonRef.value, {color: 'var(--main-color)'})
+  gsap.to(gsapButtonRef.value, {color: props.color})
   gsap.to(circleRef.value, {width: 0})
 }
 
@@ -66,9 +93,26 @@ const circleRef = ref(null)
 const loadingIconRef = ref(null)
 
 onMounted(() => {
-  document.documentElement.style.setProperty('--main-color', props.color)
-  document.documentElement.style.setProperty('--contrast-color', getContrastColor(props.color))
-  // document.documentElement.style.setProperty('--round', props.round===true?'9999px':'0')
+  gsapButtonRef.value.style.setProperty('--main-color', props.color)
+  gsapButtonRef.value.style.setProperty('--round', props.round===true?'9999px':'0')
+
+  gsap.set(gsapButtonRef.value, {color: props.color})
+
+  if (props.borderColor) {
+    gsapButtonRef.value.style.setProperty('--border-color', props.borderColor)
+  }else{
+    gsapButtonRef.value.style.setProperty('--border-color', props.color)
+  }
+  if (props.bgColor) {
+    gsapButtonRef.value.style.setProperty('--bg-color', props.bgColor)
+  }else{
+    gsapButtonRef.value.style.setProperty('--bg-color', props.color)
+  }
+  if (props.colorFul) {
+
+  } else {
+    gsapButtonRef.value.style.setProperty('--contrast-color', getContrastColor(props.color))
+  }
   gsapButtonRef.value.addEventListener("mousemove", (e) => {
     animationStart(e)
   })
@@ -84,6 +128,19 @@ onMounted(() => {
   } else if (props.size === 'small') {
     gsap.set(gsapButtonRef.value, {scale: 0.75})
   }
+  if (props.colorFul) {
+    gsap.set(gsapButtonRef.value, {background: 'linear-gradient(90deg, #03a9f4, #f441a5, #ffeb3b, #03a9f4)'})
+    gsap.set(circleRef.value, {display: 'none'})
+    gsap.fromTo(gsapButtonRef.value, {backgroundSize: '400%', backgroundPosition: '0%'}, {
+      backgroundPosition: '400%',
+      yoyo: true,
+      repeat: -1,
+      duration: 40
+    })
+  }
+  if (props.disabled) {
+    gsap.set(gsapButtonRef.value, {})
+  }
 })
 watch(()=>props.loading,(newValue)=>{
   if(newValue){
@@ -93,14 +150,10 @@ watch(()=>props.loading,(newValue)=>{
 })
 </script>
 <style scoped>
-:root {
-  --main-color: 'rgb(254, 252, 232)';
-  --contrast-color: 'black';
-  --round:'9999px';
-}
+
 
 .gsap-button {
-  @apply relative inline-block py-2 px-6 text-[var(--main-color)] rounded-full outline-0 cursor-pointer box-border overflow-hidden m-0.5;
+  @apply relative inline-block py-2 px-6  rounded-[var(--round)] outline-0  box-border overflow-hidden m-0.5;
 //text-transform: uppercase;
 }
 .gsap-button.loading {
@@ -109,23 +162,21 @@ watch(()=>props.loading,(newValue)=>{
 
 
 .gsap-button div.text {
-  @apply z-40 relative flex justify-center align-middle
+  @apply z-40 relative flex justify-center align-middle uppercase
 }
 .gsap-button.loading span.text {
   @apply  text-[var(--contrast-color)]
 }
 
 .gsap-button::after {
-  @apply absolute border-[var(--main-color)] border-2 rounded-full left-0 top-0 w-full h-full content-[''];
+  @apply absolute border-[var(--border-color)] border-2 rounded-[var(--round)] left-0 top-0 w-full h-full content-[''];
 }
 
 .circle {
-  @apply absolute block  w-0 rounded-full;
+  @apply absolute block  w-0 rounded-[var(--round)];
 }
 
 .circle:before {
-  @apply bg-[var(--main-color)] absolute rounded-full aspect-square content-[''] block left-0 top-0 -translate-x-1/2 -translate-y-1/2 w-[150%] pointer-events-none;
-}
-.loading-icon{
+  @apply bg-[var(--bg-color)] absolute rounded-[var(--round)] aspect-square content-[''] block left-0 top-0 -translate-x-1/2 -translate-y-1/2 w-[150%] pointer-events-none;
 }
 </style>

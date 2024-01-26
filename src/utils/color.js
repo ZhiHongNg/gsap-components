@@ -63,4 +63,12 @@ const getContrastColor = (color) => {
     // 如果无法识别输入的颜色格式，返回默认颜色（黑色）
     return "#000000";
 }
-export  {getContrastColor,nameToHexColor,rgbToHexColor}
+const getRandomColor = ()=> {
+    const letters = '0123456789ABCDEF';
+    let color = '#';
+    for (let i = 0; i < 6; i++) {
+        color += letters[Math.floor(Math.random() * 16)];
+    }
+    return color;
+}
+export  {getContrastColor,nameToHexColor,rgbToHexColor,getRandomColor}
